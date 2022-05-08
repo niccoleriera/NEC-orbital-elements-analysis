@@ -50,9 +50,3 @@ def updata_job_statues(jid, status):
         job['status'] = status
         save_job(generate_job_key(jid), job)
 
-@app.route('/download/<jobid>', methods=['GET'])
-def download(jobid):
-    path = f'/app/{jobid}.png'
-    with open(path, 'wb') as f:
-        f.write(rd.hget(jobid, 'image'))
-    return send_file(path, mimetype='image/png', as_attachment=True)
