@@ -1,11 +1,43 @@
 import json
 import numpy as np
 from flask import Flask, request, send_file
-from jobs import rd, q, add_job, generate_job_key, oe2rv 
+from jobs import rd, q, add_job, generate_job_key 
 
 app = Flask(__name__)
 
-@app.route('/', methods= ['GET'])
+def oe2rv(oe,mu,M):
+    d2r=np.pi/180
+    sma=oe[0]
+    emag=oe[1]
+    i=oe[2]*d2r
+    sw=oe[3]*d2r
+    bw=oe[4]*d2r
+    nu= oe[5]*d2r
+    rmag = sma*(1-emag**2)/(1+emag*np.cos(nu))
+    r=np.array([rmag*np.cos(nu), rmag*np.sin(nu),0])
+    p=sma*(1-emag**2)
+    v= np.array([-np.sin(nu)*np.sqrt(mu/p), (emag +np.cos(nu))*np.sqrt(mu/p), 0])
+    r1 = np.array([[np.cos(bw), -np.sin(bw), 0],[np.sin(bw), np.cos(bw), 0],[0,0,1]])
+    r2 = np.array([[1,0,0],[0, np.cos(i), -np.sin(i)], [0, np.sin(i), np.cos(i)]])
+    r3 = np.array([[np.cos(sw), -np.sin(sw), 0],[np.sin(sw), np.cos(sw),0],[0,0,1]])
+    rotm = np.matmul(r1,r2)
+    rotm = np.matmul(rotm,r3)
+    rijk = rotm.dot(r)
+    vijk = rotm.dot(v)
+    E= np.arccos(abs(r[0]/sma))
+  #print(r[0]/sma)
+    M2 = E*-emag*np.sin(E)
+    M2=-M2
+    rcurr=np.zeros((3,1))
+    err=abs(M2-M)
+    rcurr[0]=rijk[0]
+    rcurr[1]=rijk[1]
+    rcurr[2]=rijk[2]
+
+
+    return [rijk[0],rijk[1],rijk[2],vijk[0],vijk[1],vijk[2],rcurr,err]
+
+app.route('/', methods= ['GET'])
 def app_information():
     """
     ### NEC Orbital Elements Analysis ###
@@ -14,8 +46,12 @@ def app_information():
     /data                                                (POST) uploads the data to the Redis database, (GET) reads the data in the database
     /jobs                                                (POST) creates a new job
     /jobs						 (GET) gets information on how to submit a job
+    /jobs/<jid>                                          (GET) gets the status of the job
     /download/<jobid>                                    (GET) downloads the image with the job's plots
     /oelements						 (GET) print what the variables in the data means
+    /cometsindex                                         (GET) this prints all of the comets in the data and their indices 
+    /comet/<index>                                       (GET) this prints the comet at that index in the list
+    /rv/<index>                                          (GET) gets the position data of the comet at that index
     """
     return(app_information.__doc__)
 
@@ -27,7 +63,8 @@ def load_data():
     A string that lets the user know that the data has been read from the file.
     """
     rd.flushdb() 
-
+    global comet_data
+  
     with open('b67r-rgxc.json', 'r') as f:
         comet_data = json.load(f)
 
@@ -73,11 +110,23 @@ def orbital_elements():
     """
     return(orbital_elements.__doc__) 
 
+@app.route('/cometsindex', methods= ['GET'])
+def index_info():
+    index_dict = {}
+ 
+    for i in range(len(comet_data)):
+        index_dict[comet_data[i]['object']] = i        
+    return(index_dict)
+
+@app.route('/comet/<index>', methods=['GET'])
+def get_comet(index):
+    return comet_data[int(index)] 
+
 @app.route('/jobs', methods=['GET'])
 def jobs_info_api():
     """
-    To submit a job, do something similar to the following:
-    curl localhost:5022/jobs -X POST -d '{"start":1, "end":2}' -H "Content-Type: application/json"
+    To submit a job, do something similar to the following (this is just an example):
+    curl localhost:5022/jobs -X POST -d '{"comet": "1P/Halley"}' -H "Content-Type: application/json"
     """
     return(jobs_info_api.__doc__) 
 
@@ -91,25 +140,16 @@ def jobs_api():
         job = request.get_json(force=True)
     except Exception as e:
         return json.dumps({'status': "Error", 'message': 'Invalid JSON: {}.'.format(e)})
-    return json.dumps(add_job(job['start'], job['end']))
+    return json.dumps(add_job(job['comet']))
 
 @app.route('/jobs/<jid>', methods= ['GET'])
 def get_job_status(jid):
     jobs_dict = json.loads(rd.get(generate_job_key(jid)))
     return jobs_dict  
 
-@app.route('/rv/',methods=['GET'])
-
+@app.route('/rv/<index>',methods=['GET'])
 def rv_data()->str:
-    """
-    Prints position data
-    Args:
-        index
-    Returns:
-        result(string): 
-    """
-
-    index = int(float(request.args.get('index')))
+    #index = int(float(request.args.get('index')))
     d2r=180/np.pi
     sma=(comet_data[index]['q_au_1']+comet_data[index]['q_au_2'])/2
     emag = comet_data[index]['e']
@@ -150,7 +190,7 @@ def rv_data()->str:
 def download(jid):
     path = f'/app/{jid}.png'
     with open(path, 'wb') as f:
-        f.write(rd.hget(jobid, 'image'))
+        f.write(rd.hget('image.{}'.format(jid), 'image'))
     return send_file(path, mimetype='image/png', as_attachment=True)
 
 if __name__ == '__main__':
