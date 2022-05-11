@@ -37,7 +37,7 @@ def oe2rv(oe,mu,M):
 
     return [rijk[0],rijk[1],rijk[2],vijk[0],vijk[1],vijk[2],rcurr,err]
 
-app.route('/', methods= ['GET'])
+@app.route('/', methods= ['GET'])
 def app_information():
     """
     ### NEC Orbital Elements Analysis ###
@@ -47,7 +47,7 @@ def app_information():
     /jobs                                                (POST) creates a new job
     /jobs						 (GET) gets information on how to submit a job
     /jobs/<jid>                                          (GET) gets the status of the job
-    /download/<jobid>                                    (GET) downloads the image with the job's plots
+    /download/<jid>                                      (GET) downloads the image with the job's plots
     /oelements						 (GET) print what the variables in the data means
     /cometsindex                                         (GET) this prints all of the comets in the data and their indices 
     /comet/<index>                                       (GET) this prints the comet at that index in the list
@@ -148,23 +148,23 @@ def get_job_status(jid):
     return jobs_dict  
 
 @app.route('/rv/<index>',methods=['GET'])
-def rv_data()->str:
+def rv_data(index)->str:
     #index = int(float(request.args.get('index')))
     d2r=180/np.pi
-    sma=(comet_data[index]['q_au_1']+comet_data[index]['q_au_2'])/2
-    emag = comet_data[index]['e']
-    i = comet_data[index]['i_deg']*d2r
-    sw = comet_data[index]['w_deg']*d2r
-    bw = comet_data[index]['node_deg']*d2r
+    sma=( float(comet_data[int(index)]['q_au_1'])+ float(comet_data[int(index)]['q_au_2']))/2
+    emag = float(comet_data[int(index)]['e'])
+    i = float(comet_data[int(index)]['i_deg'])*d2r
+    sw = float(comet_data[int(index)]['w_deg'])*d2r
+    bw = float(comet_data[int(index)]['node_deg'])*d2r
     nu=0
     oe=[sma,emag,i,sw,bw,nu]
 
     au2km = 1.496*10**8
     mu=1.327*10**11
     y2m = 525600
-    T=comet_data[index]['p_yr']*y2m
+    T= float(comet_data[int(index)]['p_yr'])*y2m
     n=2*np.pi/T
-    tcurr = T-comet_data[index]['tp_tdb']+comet_data[index]['epoch_tdb']
+    tcurr = T- float(comet_data[int(index)]['tp_tdb']) + float(comet_data[int(index)]['epoch_tdb'])
     M=n*(tcurr)
 
     k=1000
