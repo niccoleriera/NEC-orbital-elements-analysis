@@ -21,4 +21,4 @@ spec:
           image: niccoleriera/necelements_wrk:latest
           env:
           - name: REDIS_IP
-            value:
+            value: 10.105.209.207
