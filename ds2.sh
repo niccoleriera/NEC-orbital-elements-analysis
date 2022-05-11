@@ -1,0 +1,7 @@
+docker stop pavanshukla99_necelements_wrk
+docker rm pavanshukla99_necelements_wrk
+docker stop pavanshukla99_necelements_api
+docker rm pavanshukla99_necelements_api
+docker stop pavanshukla99_necelements_db
+docker rm pavanshukla99_necelements_db
+rm output.png

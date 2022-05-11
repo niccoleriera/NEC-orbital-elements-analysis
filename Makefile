@@ -1,9 +1,9 @@
-NAME="niccoleriera"
+NAME="pavanshukla99"
 APP="necelements"
 VER="latest"
-FPORT="5022"
-RPORT="6422"
-UID="876531"
+FPORT="5030"
+RPORT="6430"
+UID="872932"
 GID="816966"
 
 list:

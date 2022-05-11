@@ -1,7 +1,7 @@
 import json
 import numpy as np
 from flask import Flask, request, send_file
-from jobs import rd, q, add_job, generate_job_key 
+from jobs import rd, q, add_job, generate_job_key, get_comet_dict,update_job_status,save_job_image
 
 app = Flask(__name__)
 
@@ -24,20 +24,32 @@ def oe2rv(oe,mu,M):
     rotm = np.matmul(rotm,r3)
     rijk = rotm.dot(r)
     vijk = rotm.dot(v)
-    E= np.arccos(abs(r[0]/sma))
+  #E= np.arccos(abs(r[0]/sma))
   #print(r[0]/sma)
-    M2 = E*-emag*np.sin(E)
-    M2=-M2
-    rcurr=np.zeros((3,1))
+  #M2 = E-emag*np.sin(E)
+    arg1 = ((1-emag**2)**.5*np.sin(nu))/(1+emag*np.cos(nu))
+    arg2 = (emag+np.cos(nu))/(1+emag*np.cos(nu))
+    M2 = np.arctan2(arg1,arg2)-emag*arg1
+  #print(M2)
+ # print(M2)
+  #M2=M2
+    rcurr=np.zeros((6,1))
     err=abs(M2-M)
+    tol=10**-2
+  #print(err)
+  #if(err<tol):
     rcurr[0]=rijk[0]
     rcurr[1]=rijk[1]
-    rcurr[2]=rijk[2]
+    rcurr[2]=rijk[2]  
+    rcurr[3]=vijk[0]
+    rcurr[4]=vijk[1]
+    rcurr[5]=vijk[2]
+
 
 
     return [rijk[0],rijk[1],rijk[2],vijk[0],vijk[1],vijk[2],rcurr,err]
 
-app.route('/', methods= ['GET'])
+@app.route('/', methods= ['GET'])
 def app_information():
     """
     ### NEC Orbital Elements Analysis ###
@@ -147,44 +159,56 @@ def get_job_status(jid):
     jobs_dict = json.loads(rd.get(generate_job_key(jid)))
     return jobs_dict  
 
-@app.route('/rv/<index>',methods=['GET'])
-def rv_data()->str:
+@app.route('/rv/<jid>',methods=['GET'])
+def rv_data(jid)->str:
     #index = int(float(request.args.get('index')))
+    update_job_status(jid, "in progress")
+    comet_data = get_comet_dict(jid)
     d2r=180/np.pi
-    sma=(comet_data[index]['q_au_1']+comet_data[index]['q_au_2'])/2
-    emag = comet_data[index]['e']
-    i = comet_data[index]['i_deg']*d2r
-    sw = comet_data[index]['w_deg']*d2r
-    bw = comet_data[index]['node_deg']*d2r
+    au2km=1.496*10**8
+    sma=(float(comet_data['q_au_1'])+float(comet_data['q_au_2']))/2*au2km
+    emag = float(comet_data['e'])
+    i = float(comet_data['i_deg'])#*d2r
+    sw = float(comet_data['w_deg'])#*d2r
+    bw = float(comet_data['node_deg'])#*d2r
     nu=0
     oe=[sma,emag,i,sw,bw,nu]
-
-    au2km = 1.496*10**8
     mu=1.327*10**11
     y2m = 525600
-    T=comet_data[index]['p_yr']*y2m
+    T=float(comet_data['p_yr'])*y2m
     n=2*np.pi/T
-    tcurr = T-comet_data[index]['tp_tdb']+comet_data[index]['epoch_tdb']
+    tcurr = T-float(comet_data['tp_tdb'])+float(comet_data['epoch_tdb'])
     M=n*(tcurr)
+    if(M>np.pi):
+        M=M-2*np.pi
 
     k=1000
     cond=0;
     curr=[]
-    tol=10**-2
+    tol=1
     traj=[]
     rx,ry,rz,vx,vy,vz = ([] for h in range(6))
     for j in range(k):
+        oe[5] = oe[5]+360/k
         traj.append(oe2rv(oe,mu,M))
-        rx.append(traj[j][0])
-        ry.append(traj[j][1])
-        rz.append(traj[j][2])
-        vx.append(traj[j][3])
-        vy.append(traj[j][4])
-        vz.append(traj[j][5])
-        if(traj[j][7]<tol and cond==0 and j>0):
+        rx.append(traj[j][0]/au2km)
+        ry.append(traj[j][1]/au2km)
+        rz.append(traj[j][2]/au2km)
+        vx.append(traj[j][3]/au2km)
+        vy.append(traj[j][4]/au2km)
+        vz.append(traj[j][5]/au2km)
+        if(traj[j][7]<tol and j>0):
+            tol = traj[j][7]
             curr = traj[j-1][6]/au2km
-            cond=cond+1
-    return 'Position:\n' +'\n'.join(curr) +'\n'  
+    curr2=[]
+   # curr2.append(curr[0])
+   # curr2.append(curr[1])
+   # curr2.append(curr[2])
+    curr2=[str(curr[0]),str(curr[1]),str(curr[2])]
+    cvel = [str(curr[3]*au2km),str(curr[4]*au2km),str(curr[5]*au2km)]
+    update_job_status(jid, "complete")
+    return '\n' +'Position (AU):\n' +'\n'.join(curr2) +'\n\n' + 'Velocity (km/s)\n'+'\n'.join(cvel)+'\n\n'+ 'Mean Anomaly Error (degrees): '+str(tol*180/np.pi)+'\n\n' 
+    #return 'Position:\n' +str(tol) +'\n'  
 
 @app.route('/download/<jid>', methods=['GET'])
 def download(jid):

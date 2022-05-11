@@ -2,7 +2,7 @@ FROM python:3.9
 
 RUN pip3 install redis==4.1.4 \
 		 hotqueue==0.2.8 \
-		 matplotlib==3.3.4 \
+		 matplotlib==3.5.2 \
 		 numpy
 
 COPY ./src/* /app/
