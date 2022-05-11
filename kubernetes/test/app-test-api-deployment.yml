@@ -20,8 +20,8 @@ spec:
           imagePullPolicy: Always
           image: niccoleriera/necelements_api:latest
           env:
-          - name: FLASK_APP
-            value: "flask_api.py"
+          - name: REDIS_IP
+            value: 10.105.209.207
           ports:
           - name: http
             containerPort: 5000
