@@ -17,7 +17,7 @@ spec:
     spec:
       containers:
         - name: nec-api-deployment
-          imagePullPolicy: Always
+          imagePullPolicy: IfNotPresent
           image: niccoleriera/necelements_api:latest
           env:
           - name: FLASK_APP
