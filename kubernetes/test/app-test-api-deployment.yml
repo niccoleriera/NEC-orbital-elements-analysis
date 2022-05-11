@@ -21,7 +21,7 @@ spec:
           image: niccoleriera/necelements_api:latest
           env:
           - name: REDIS_IP
-            value: 10.105.209.207
+            value: test-db-service
           ports:
           - name: http
             containerPort: 5000
