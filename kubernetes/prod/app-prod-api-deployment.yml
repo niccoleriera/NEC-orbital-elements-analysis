@@ -20,8 +20,8 @@ spec:
           imagePullPolicy: IfNotPresent
           image: niccoleriera/necelements_api:latest
           env:
-          - name: FLASK_APP
-            value: "flask_api.py"
+          - name: REDIS_IP
+            value: prod-db-service
           ports:
           - name: http
             containerPort: 5000
