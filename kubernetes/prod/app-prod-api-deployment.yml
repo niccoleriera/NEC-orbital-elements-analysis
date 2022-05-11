@@ -18,7 +18,7 @@ spec:
       containers:
         - name: nec-api-deployment
           imagePullPolicy: Always
-          image: niccoleriera/necelements:latest
+          image: niccoleriera/necelements_api:latest
           env:
           - name: FLASK_APP
             value: "flask_api.py"
