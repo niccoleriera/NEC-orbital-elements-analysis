@@ -22,11 +22,12 @@ Apply the files as follows:
 > kubectl apply -f app-prod-api-deployment.yml
 > kubectl apply -f app-prod-wrk-deployment.yml
 
+
 To make sure everything is up and running, do the following
 > kubectl get deployments
 > kubectl get pods
 
-Everything should say running.
+After about 10 minutes, everything should say running.
 
 ## How to run the Test Script
 First make sure to install pytest
