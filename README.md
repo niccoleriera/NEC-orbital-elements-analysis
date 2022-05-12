@@ -13,15 +13,11 @@ To deploy the application on the kubernetes cluster, you must first ssh to k8s l
 Once here you need to git clone the repository:
 > git clone https://github.com/niccoleriera/NEC-orbital-elements-analysis
 
-Apply the files as follows:
+To deploy the test deployments do the following: 
+> make deploy-test
 
-> kubectl apply -f app-prod-db-pvc.yml
-> kubectl apply -f app-prod-db-deployment.yml
-> kubectl apply -f app-prod-db-service.yml
-> kubectl apply -f app-prod-api-service.yml
-> kubectl apply -f app-prod-api-deployment.yml
-> kubectl apply -f app-prod-wrk-deployment.yml
-
+To deploy the actual production deployments do the following:
+> make deploy-prod
 
 To make sure everything is up and running, do the following
 > kubectl get deployments
