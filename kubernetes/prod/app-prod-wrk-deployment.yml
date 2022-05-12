@@ -17,7 +17,7 @@ spec:
     spec:
       containers:
         - name: prod-wrk-deployment
-          imagePullPolicy: IfNotPresent
+          imagePullPolicy: Always
           image: niccoleriera/necelements_wrk:latest 
           env:
           - name: REDIS_IP
