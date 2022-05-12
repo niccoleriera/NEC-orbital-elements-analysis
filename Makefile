@@ -47,7 +47,21 @@ push-wrk:
 
 push-all: push-api push-wrk
 
+deploy-test:
+	kubectl apply -f kubernetes/test/app-test-db-pvc.yml
+	kubectl apply -f kubernetes/test/app-test-db-service.yml
+	kubectl apply -f kubernetes/test/app-test-db-deployment.yml
+	kubectl apply -f kubernetes/test/app-test-api-service.yml
+	kubectl apply -f kubernetes/test/app-test-api-deployment.yml
+	kubectl apply -f kubernetes/test/app-test-wrk-deployment.yml
 
+deploy-prod:
+	kubectl apply -f kubernetes/prod/app-prod-db-pvc.yml
+	kubectl apply -f kubernetes/prod/app-prod-db-service.yml
+	kubectl apply -f kubernetes/prod/app-prod-db-deployment.yml
+	kubectl apply -f kubernetes/prod/app-prod-api-service.yml
+	kubectl apply -f kubernetes/prod/app-prod-api-deployment.yml
+	kubectl apply -f kubernetes/prod/app-prod-wrk-deployment.yml
 cycle-api: rm-api build-api run-api
 
 cycle-db: rm-db build-db run-db
