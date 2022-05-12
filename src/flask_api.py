@@ -24,16 +24,18 @@ def oe2rv(oe,mu,M):
     rotm = np.matmul(rotm,r3)
     rijk = rotm.dot(r)
     vijk = rotm.dot(v)
-    E= np.arccos(abs(r[0]/sma))
-  #print(r[0]/sma)
-    M2 = E*-emag*np.sin(E)
-    M2=-M2
-    rcurr=np.zeros((3,1))
+    arg1 = ((1-emag**2)**.5*np.sin(nu))/(1+emag*np.cos(nu))
+    arg2 = (emag+np.cos(nu))/(1+emag*np.cos(nu))
+    M2 = np.arctan2(arg1,arg2)-emag*arg1
+    rcurr=np.zeros((6,1))
     err=abs(M2-M)
+    tol=10**-2
     rcurr[0]=rijk[0]
     rcurr[1]=rijk[1]
-    rcurr[2]=rijk[2]
-
+    rcurr[2]=rijk[2]  
+    rcurr[3]=vijk[0]
+    rcurr[4]=vijk[1]
+    rcurr[5]=vijk[2]
 
     return [rijk[0],rijk[1],rijk[2],vijk[0],vijk[1],vijk[2],rcurr,err]
 
@@ -149,42 +151,48 @@ def get_job_status(jid):
 
 @app.route('/rv/<index>',methods=['GET'])
 def rv_data(index)->str:
-    #index = int(float(request.args.get('index')))
+
+    au2km = 1.496*10**8
     d2r=180/np.pi
-    sma=( float(comet_data[int(index)]['q_au_1'])+ float(comet_data[int(index)]['q_au_2']))/2
+    sma=( float(comet_data[int(index)]['q_au_1'])+ float(comet_data[int(index)]['q_au_2']))/2*au2km 
     emag = float(comet_data[int(index)]['e'])
-    i = float(comet_data[int(index)]['i_deg'])*d2r
-    sw = float(comet_data[int(index)]['w_deg'])*d2r
-    bw = float(comet_data[int(index)]['node_deg'])*d2r
+    i = float(comet_data[int(index)]['i_deg'])
+    sw = float(comet_data[int(index)]['w_deg'])
+    bw = float(comet_data[int(index)]['node_deg'])
     nu=0
     oe=[sma,emag,i,sw,bw,nu]
 
-    au2km = 1.496*10**8
     mu=1.327*10**11
     y2m = 525600
     T= float(comet_data[int(index)]['p_yr'])*y2m
     n=2*np.pi/T
     tcurr = T- float(comet_data[int(index)]['tp_tdb']) + float(comet_data[int(index)]['epoch_tdb'])
     M=n*(tcurr)
+    if(M>np.pi):
+        M=M-2*np.pi
 
     k=1000
     cond=0;
     curr=[]
-    tol=10**-2
+    tol=1
     traj=[]
     rx,ry,rz,vx,vy,vz = ([] for h in range(6))
     for j in range(k):
+        oe[5] = oe[5]+360/k
         traj.append(oe2rv(oe,mu,M))
-        rx.append(traj[j][0])
-        ry.append(traj[j][1])
-        rz.append(traj[j][2])
-        vx.append(traj[j][3])
-        vy.append(traj[j][4])
-        vz.append(traj[j][5])
-        if(traj[j][7]<tol and cond==0 and j>0):
+        rx.append(traj[j][0]/au2km)
+        ry.append(traj[j][1]/au2km)
+        rz.append(traj[j][2]/au2km)
+        vx.append(traj[j][3]/au2km)
+        vy.append(traj[j][4]/au2km)
+        vz.append(traj[j][5]/au2km)
+        if(traj[j][7]<tol and j>0):
+            tol = traj[j][7]
             curr = traj[j-1][6]/au2km
-            cond=cond+1
-    return 'Position:\n' +'\n'.join(curr) +'\n'  
+    curr2 = []
+    curr2=[str(curr[0]),str(curr[1]),str(curr[2])]
+    cvel = [str(curr[3]*au2km),str(curr[4]*au2km),str(curr[5]*au2km)]
+    return '\n' +'Position (AU):\n' +'\n'.join(curr2) +'\n\n' + 'Velocity (km/s)\n'+'\n'.join(cvel)+'\n\n'+ 'Mean Anomaly Error (degrees): '+str(tol*180/np.pi)+'\n\n' 
 
 @app.route('/download/<jid>', methods=['GET'])
 def download(jid):
