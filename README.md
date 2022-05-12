@@ -21,9 +21,10 @@ To deploy the actual production deployments do the following:
 
 To make sure everything is up and running, do the following
 > kubectl get deployments
+
 > kubectl get pods
 
-After about 10 minutes, everything should say running.
+Everything should say running.
 
 ## How to run the Test Script
 First make sure to install pytest
