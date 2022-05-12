@@ -45,15 +45,15 @@ def app_information():
     ### NEC Orbital Elements Analysis ###
     
     /                                                    (GET) print this information
-    /data                                                (POST) uploads the data to the Redis database, (GET) reads the data in the database
+    /data                                                (POST) uploads the data to the Redis database, (GET) reads the data in the database (DELETE) Deletes all data in the database.
     /jobs                                                (POST) creates a new job
     /jobs						 (GET) gets information on how to submit a job
     /jobs/<jid>                                          (GET) gets the status of the job
     /download/<jid>                                      (GET) downloads the image with the job's plots
     /oelements						 (GET) print what the variables in the data means
-    /cometsindex                                         (GET) this prints all of the comets in the data and their indices 
-    /comet/<index>                                       (GET) this prints the comet at that index in the list
-    /rv/<index>                                          (GET) gets the position data of the comet at that index
+    /cometsindex                                         (GET) prints all of the comets in the data and their indices 
+    /comet/<index>                                       (GET) prints the comet at that index in the list
+    /rv/<index>                                          (GET) gets the position data and velocity of the comet at that index
     """
     return(app_information.__doc__)
 
@@ -89,6 +89,14 @@ def read_data():
 
     return (f'{json.dumps(list_of_data, indent=2)}\n') 
 
+@app.route('/data/', methods=['GET'])
+def delete_data():
+    """
+    Deletes all of the data from the redis database.
+    """
+    rd.flushdb()
+    return 'Data has been flushed from the database\n'
+
 @app.route('/oelements', methods= ["GET"])
 def orbital_elements():
     """
@@ -114,6 +122,9 @@ def orbital_elements():
 
 @app.route('/cometsindex', methods= ['GET'])
 def index_info():
+    """
+    Returns a dictionary with all the comets in the data and their respective indices. 
+    """
     index_dict = {}
  
     for i in range(len(comet_data)):
@@ -122,6 +133,9 @@ def index_info():
 
 @app.route('/comet/<index>', methods=['GET'])
 def get_comet(index):
+    """
+    Returns the dictionary with information on a specific comet
+    """
     return comet_data[int(index)] 
 
 @app.route('/jobs', methods=['GET'])
@@ -146,12 +160,17 @@ def jobs_api():
 
 @app.route('/jobs/<jid>', methods= ['GET'])
 def get_job_status(jid):
+    """
+    Returns the status of the specified job.
+    """
     jobs_dict = json.loads(rd.get(generate_job_key(jid)))
     return jobs_dict  
 
 @app.route('/rv/<index>',methods=['GET'])
 def rv_data(index)->str:
-
+    """
+    Returns position and velocity of the comet at the index specified.
+    """
     au2km = 1.496*10**8
     d2r=180/np.pi
     sma=( float(comet_data[int(index)]['q_au_1'])+ float(comet_data[int(index)]['q_au_2']))/2*au2km 
@@ -196,6 +215,9 @@ def rv_data(index)->str:
 
 @app.route('/download/<jid>', methods=['GET'])
 def download(jid):
+    """
+    Downloads the job id image from Redis.
+    """
     path = f'/app/{jid}.png'
     with open(path, 'wb') as f:
         f.write(rd.hget('image.{}'.format(jid), 'image'))
