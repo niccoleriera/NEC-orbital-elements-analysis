@@ -48,7 +48,7 @@ The following gives a list of the comets that are in the data and their respecti
 > curl https://isp-proxy.tacc.utexas.edu/nriera-1/cometsindex
 
 The following gives the dictionary of a specific comet at its index in the list:
-> curl https://isp-proxy.tacc.utexas.edu/nriera-1/comet/<index> 
+> curl https://isp-proxy.tacc.utexas.edu/nriera-1/comet/< index > 
 
 ## How to Create Jobs and Retrieve Results
 To create a job:
@@ -57,15 +57,15 @@ To create a job:
 You can input whichever comet whose trajectory you would like to plot. 
 
 To get the job's status:
-> curl https://isp-proxy.tacc.utexas.edu/nriera-1/jobs/<jid> 
+> curl https://isp-proxy.tacc.utexas.edu/nriera-1/jobs/< jid> 
 
 Once the status says complete, that means that the worker has finished plotting its trajectory. 
 
 To download the image made by the worker:
-> curl https://isp-proxy.tacc.utexas.edu/nriera-1/download/<jid> > output.png
+> curl https://isp-proxy.tacc.utexas.edu/nriera-1/download/< jid> > output.png
 
-To download the image to your computer:
-> scp username@isp02.tacc.utexas.edu:~/output.png .
+To be able to view the image do something similar to the following. In my example, I am not in isp, but on the regular command line, and I am saving the image to my Desktop folder. 
+> scp nriera@isp02.tacc.utexas.edu:/home/nriera/NEC-orbital-elements-analysis/output.png .\Desktop\ouput.png 
 
 ## Sources
 “Near-Earth Comets - Orbital Elements API.” NASA, NASA, data.nasa.gov/Space-Science/Near-Earth-Comets-Orbital-Elements-API/ysqn-vd8v. 
