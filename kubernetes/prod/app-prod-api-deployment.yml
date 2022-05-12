@@ -17,7 +17,7 @@ spec:
     spec:
       containers:
         - name: nec-api-deployment
-          imagePullPolicy: IfNotPresent
+          imagePullPolicy: Always
           image: niccoleriera/necelements_api:latest
           env:
           - name: REDIS_IP
