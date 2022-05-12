@@ -21,16 +21,19 @@ def oe2rv(oe,mu,M):
     rotm = np.matmul(rotm,r3)
     rijk = rotm.dot(r)
     vijk = rotm.dot(v)
-    E= np.arccos(abs(r[0]/sma))
-  #print(r[0]/sma)
-    M2 = E*-emag*np.sin(E)
-    M2=-M2
-    rcurr=np.zeros((3,1))
+
+    arg1 = ((1-emag**2)**.5*np.sin(nu))/(1+emag*np.cos(nu))
+    arg2 = (emag+np.cos(nu))/(1+emag*np.cos(nu))
+    M2 = np.arctan2(arg1,arg2)-emag*arg1
+    rcurr=np.zeros((6,1))
     err=abs(M2-M)
+    tol=10**-2
     rcurr[0]=rijk[0]
     rcurr[1]=rijk[1]
     rcurr[2]=rijk[2]
-
+    rcurr[3]=vijk[0]
+    rcurr[4]=vijk[1]
+    rcurr[5]=vijk[2]
 
     return [rijk[0],rijk[1],rijk[2],vijk[0],vijk[1],vijk[2],rcurr,err]
 
@@ -38,48 +41,57 @@ def oe2rv(oe,mu,M):
 def execute_job(jid):
     update_job_status(jid, "in progress")
         
-    # index = int(float(request.args.get('index')))
-    au2km = 1.496*10**8
-    d2r=180/np.pi
     comet_data = get_comet_dict(jid)
+    d2r=180/np.pi
+    au2km=1.496*10**8
     sma=(float(comet_data['q_au_1'])+float(comet_data['q_au_2']))/2*au2km
     emag = float(comet_data['e'])
-    i = float(comet_data['i_deg'])*d2r
-    sw = float(comet_data['w_deg'])*d2r
-    bw = float(comet_data['node_deg'])*d2r
+    i = float(comet_data['i_deg'])#*d2r
+    sw = float(comet_data['w_deg'])#*d2r
+    bw = float(comet_data['node_deg'])#*d2r
     nu=0
     oe=[sma,emag,i,sw,bw,nu]
-
-    
     mu=1.327*10**11
     y2m = 525600
     T=float(comet_data['p_yr'])*y2m
     n=2*np.pi/T
     tcurr = T-float(comet_data['tp_tdb'])+float(comet_data['epoch_tdb'])
     M=n*(tcurr)
+    if(M>np.pi):
+        M=M-2*np.pi
 
     k=1000
     cond=0;
     curr=[]
-    tol=10**-2
+    tol=1
     traj=[]
     rx,ry,rz,vx,vy,vz = ([] for h in range(6))
     for j in range(k):
+        oe[5] = oe[5]+360/k
         traj.append(oe2rv(oe,mu,M))
-        rx.append(traj[j][0])
-        ry.append(traj[j][1])
-        rz.append(traj[j][2])
-        vx.append(traj[j][3])
-        vy.append(traj[j][4])
-        vz.append(traj[j][5])
-        if(traj[j][7]<tol and cond==0 and j>0):
-            curr = traj[j-1][6]/au2km        
-            cond=cond+1
+        rx.append(traj[j][0]/au2km)
+        ry.append(traj[j][1]/au2km)
+        rz.append(traj[j][2]/au2km)
+        vx.append(traj[j][3]/au2km)
+        vy.append(traj[j][4]/au2km)
+        vz.append(traj[j][5]/au2km)
+        if(traj[j][7]<tol and j>0):
+            tol = traj[j][7]
+            curr = traj[j-1][6]/au2km
+       
     fig = plt.figure()
+    #curr = [1,1,1]
     ax = fig.add_subplot(projection='3d')
-    ax.scatter(rx,ry,rz,color='blue')
-   # ax.scatter(curr[0],curr[1],curr[2],color='red',s=150)
-    ax.scatter(0,0,0,color='orange',s=200)
+    ax.plot(rx,ry,rz,color='blue')
+    ax.scatter(curr[0],curr[1],curr[2],color='green',s=50)
+    ax.scatter(0,0,0,color='red',s=100)
+    ax.set_xlabel('X (AU)')
+    ax.set_ylabel('Y (AU)')
+    ax.set_zlabel('Z (AU)')
+    ax.legend(['Trajectory','Position at Time of Measurement','Sun'])
+    ax.view_init(elev=30, azim=-30)
+    ax.set_box_aspect((np.ptp(rx), np.ptp(ry), np.ptp(rz)))
+  
     plt.savefig('/output_image.png')
     
     with open('/output_image.png', 'rb') as f:
